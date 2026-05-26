@@ -2,8 +2,10 @@ import os
 import socket
 
 
+# Validation run uses the text logger, so wandb credentials are not required.
+# If you later want wandb, set WANDB_API_KEY env var on the pod and uncomment.
 CONFIG = {
-    "WANDB_API_KEY": "<YOUR_WANDB_API_KEY>",
+    # "WANDB_API_KEY": os.environ.get("WANDB_API_KEY", ""),
     "WANDB_IGNORE_GLOBS": "*.patch",
     "WANDB_DISABLE_CODE": "true",
     "TOKENIZERS_PARALLELISM": "false",

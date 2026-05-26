@@ -7,6 +7,21 @@ import torch
 from configs.base.base_utils import *
 
 
+# ---------------------------------------------------------------------------
+# 12-HOUR VALIDATION RUN CONFIG
+# ---------------------------------------------------------------------------
+# This config is the same as the original PHX_example_s1_dyn_config.py
+# from the upstream repo, but with `max_epochs` reduced from 100 -> 12 so
+# the full stage-1 pretraining fits inside roughly 4 hours on a single
+# A100 80GB. The intent is to confirm the codebase trains end-to-end on
+# PHOENIX-2014-T, NOT to reproduce paper-level BLEU.
+#
+# To restore the full training schedule for a real run, set:
+#     cfg.max_epochs = 100
+# (and budget ~1-2 days of GPU time).
+# ---------------------------------------------------------------------------
+
+
 def get_config():
     cfg = config_dict.ConfigDict()
     cfg.name = Path(os.path.realpath(__file__)).stem
@@ -49,7 +64,8 @@ def get_config():
             "num_cycles": 1,
             "start_value_mult": 0.7,
             "end_value_mult": 0.7,
-            "warmup_epochs": 5,
+            # warmup_epochs reduced 5 -> 2 to match the shorter 12-epoch run.
+            "warmup_epochs": 2,
         }
     )
 
@@ -81,7 +97,8 @@ def get_config():
         }
     )
 
-    cfg.max_epochs = 100
+    # --- VALIDATION RUN: reduced from 100 -> 12 ---
+    cfg.max_epochs = 12
     cfg.model_checkpoint_dir = ""
 
     cfg.train_ds_name = "dataloaders.phoenix_video_dataset"

@@ -1,0 +1,6 @@
+# Shell scripts must use LF endings - they're executed on Linux pods.
+*.sh text eol=lf
+
+# Python files: store with LF in the repo, but git can still check out
+# with native line endings on Windows.
+*.py text

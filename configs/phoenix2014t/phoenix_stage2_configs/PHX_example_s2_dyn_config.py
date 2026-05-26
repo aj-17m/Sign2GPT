@@ -11,6 +11,18 @@ from train_utils.checkpoint_helpers import (
 )
 
 
+# ---------------------------------------------------------------------------
+# 12-HOUR VALIDATION RUN CONFIG
+# ---------------------------------------------------------------------------
+# Same as the upstream config except `max_epochs` is reduced from 100 -> 10
+# so the whole stage-2 translation finetuning fits in roughly 7 hours on
+# a single A100 80GB. This is a pipeline validation run; do NOT expect
+# paper-level BLEU. Target: BLEU-4 between 3 and 10.
+#
+# Restore `max_epochs = 100` for a real reproduction.
+# ---------------------------------------------------------------------------
+
+
 def get_config():
     cfg = config_dict.ConfigDict()
     cfg.name = Path(os.path.realpath(__file__)).stem
@@ -53,7 +65,8 @@ def get_config():
             "num_cycles": 1,
             "start_value_mult": 0.7,
             "end_value_mult": 0.7,
-            "warmup_epochs": 5,
+            # warmup_epochs reduced 5 -> 2 for the shorter 10-epoch run.
+            "warmup_epochs": 2,
         }
     )
 
@@ -84,7 +97,8 @@ def get_config():
         }
     )
 
-    cfg.max_epochs = 100
+    # --- VALIDATION RUN: reduced from 100 -> 10 ---
+    cfg.max_epochs = 10
     cfg.model_checkpoint_dir = ""
 
     cfg.train_ds_name = "dataloaders.phoenix_video_dataset"
