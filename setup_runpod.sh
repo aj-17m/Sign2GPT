@@ -111,17 +111,18 @@ done
 # ===========================================================================
 log "Phase 3/7: LMDB conversion"
 
-if [ ! -d "${SIGN2GPT_LMDB_PATH}/phoenix2014t/lmdb_videos" ] || \
-   [ -z "$(ls -A ${SIGN2GPT_LMDB_PATH}/phoenix2014t/lmdb_videos 2>/dev/null)" ]; then
-    cd "${SIGN2GPT_ROOT}"
-    python scripts/phoenix2014t/image_lmdb_creator.py \
-        --frames_root "${PHOENIX_FRAMES}" \
-        --lmdb_root "${SIGN2GPT_LMDB_PATH}/phoenix2014t/lmdb_videos" \
-        --csv_dir "${SIGN2GPT_ROOT}/data/phoenix2014t" \
-        --all_splits
-else
-    log "LMDB already populated, skipping"
-fi
+# Always invoke the converter. A wrapper-level "skip if non-empty" check
+# incorrectly skips when a prior run was interrupted mid-conversion (e.g.,
+# tmux died after only ~80 of ~8k clips were done). The image_lmdb_creator
+# itself has per-clip idempotency (see convert_clip line ~67), so re-running
+# is cheap: already-converted clips return "skipped" without re-reading the
+# PNGs.
+cd "${SIGN2GPT_ROOT}"
+python scripts/phoenix2014t/image_lmdb_creator.py \
+    --frames_root "${PHOENIX_FRAMES}" \
+    --lmdb_root "${SIGN2GPT_LMDB_PATH}/phoenix2014t/lmdb_videos" \
+    --csv_dir "${SIGN2GPT_ROOT}/data/phoenix2014t" \
+    --all_splits
 
 # ===========================================================================
 # Phase 4 - Pseudo-gloss vocabulary
