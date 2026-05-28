@@ -65,7 +65,11 @@ pip install --no-cache-dir \
     opencv-python==4.8.1.78
 
 # spaCy German model (used by pseudo_gloss_de.py)
-python -m spacy download de_core_news_lg
+# Note: `python -m spacy download` builds a malformed URL on some RunPod pod
+# templates (compatibility.json lookup leaves the version field empty,
+# producing /-de_core_news_lg/-de_core_news_lg.tar.gz). Install the wheel
+# from the direct URL to avoid the lookup entirely.
+pip install --no-cache-dir https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.7.0/de_core_news_lg-3.7.0-py3-none-any.whl
 
 # ===========================================================================
 # Phase 2 - PHOENIX-2014-T dataset download

@@ -47,6 +47,7 @@ from tqdm import tqdm
 N_BYTES = 2**38  # 256 GB max-map (LMDB only allocates what it needs).
 RESIZE = (256, 256)
 COMMIT_EVERY = 100  # Commit a write txn every N frames to keep memory flat.
+MIN_VALID_FRAMES = 16  # Below this, the clip is too damaged to be useful.
 
 
 def list_clip_frames(clip_dir: Path):
@@ -83,13 +84,19 @@ def convert_clip(clip_dir: Path, lmdb_out_dir: Path, clip_id: str, overwrite: bo
     txn = env.begin(write=True)
 
     ind = 0
+    skipped = 0
     for frame_path in frames:
+        # PHOENIX-2014-T ships with ~55k empty/corrupt PNGs scattered across
+        # clips. Skip individual broken frames; if too few survive, reject
+        # the whole clip (see MIN_VALID_FRAMES check below).
+        if frame_path.stat().st_size == 0:
+            skipped += 1
+            continue
         try:
             img = Image.open(frame_path).convert("RGB").resize(RESIZE)
-        except Exception as e:
-            env.close()
-            shutil.rmtree(tmp_dir, ignore_errors=True)
-            return f"error:{clip_id}:{e}"
+        except Exception:
+            skipped += 1
+            continue
 
         buf = io.BytesIO()
         img.save(buf, format="jpeg", quality=90)
@@ -101,6 +108,14 @@ def convert_clip(clip_dir: Path, lmdb_out_dir: Path, clip_id: str, overwrite: bo
             txn.commit()
             txn = env.begin(write=True)
 
+    if ind < MIN_VALID_FRAMES:
+        # Too damaged to use - the temporal aggregator needs enough frames
+        # to be meaningful. Reject the clip cleanly.
+        txn.commit()
+        env.close()
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        return f"error:{clip_id}:only_{ind}_valid_frames_skipped_{skipped}"
+
     txn.put(
         key=b"details",
         value=pickle.dumps({"num_frames": ind, "id": clip_id}, protocol=4),
@@ -111,6 +126,8 @@ def convert_clip(clip_dir: Path, lmdb_out_dir: Path, clip_id: str, overwrite: bo
 
     lmdb_out_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(tmp_dir), str(lmdb_out_dir))
+    if skipped:
+        return f"ok:{ind}:skipped_{skipped}_empty_frames"
     return f"ok:{ind}"
 
 
