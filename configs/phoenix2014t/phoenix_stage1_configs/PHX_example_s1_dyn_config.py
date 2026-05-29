@@ -46,12 +46,22 @@ def get_config():
     }
 
     base_bs = 8
-    cfg.bs = int(
-        8
-        * torch.cuda.device_count()
-        # * ((torch.cuda.mem_get_info()[1] / 10**6) / 24000)
-    )
-    cfg.accum = 1
+    # VRAM-aware batch sizing. Effective batch stays at 8 via gradient
+    # accumulation, so the learning rate (calibrated for batch=8) stays valid.
+    _vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
+    _ngpu = torch.cuda.device_count()
+    if _vram_gb >= 70:        # A100 80GB, H100
+        cfg.bs = 8 * _ngpu
+        cfg.accum = 1
+    elif _vram_gb >= 40:      # A100 40GB, A6000 48GB, L40S
+        cfg.bs = 6 * _ngpu
+        cfg.accum = 1
+    elif _vram_gb >= 22:      # RTX PRO 4000/4500, RTX 4090, A5000
+        cfg.bs = 4 * _ngpu
+        cfg.accum = 2
+    else:                      # tight GPUs (<22GB)
+        cfg.bs = 2 * _ngpu
+        cfg.accum = 4
     cfg.num_workers = min(min(cfg.bs, int(10 * torch.cuda.device_count())), 10)
 
     cfg.gate_grad_multiplier = 1.0
