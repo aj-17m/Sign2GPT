@@ -68,8 +68,13 @@ pip install --no-cache-dir \
 # embeddings - imports `xformers.components.positional_embedding`).
 # Not in the upstream requirements list; missing it causes training to crash
 # at model init with `ModuleNotFoundError: No module named 'xformers'`.
-# Letting pip pick the version that matches the installed torch/CUDA.
-pip install --no-cache-dir xformers
+#
+# IMPORTANT: pin to 0.0.27.post2 (torch 2.4.x compatible). The latest
+# xformers releases require torch 2.7+, which needs CUDA driver >=12.6.
+# Runpod's pytorch:2.4.0-cuda12.4.1 template ships driver 12.4 - upgrading
+# torch via xformers' dependency would crash with "driver too old". Using
+# --no-deps prevents pip from touching the existing torch install.
+pip install --no-cache-dir --no-deps xformers==0.0.27.post2
 
 # spaCy German model (used by pseudo_gloss_de.py)
 # Note: `python -m spacy download` builds a malformed URL on some RunPod pod
