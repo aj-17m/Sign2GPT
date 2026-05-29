@@ -166,10 +166,23 @@ def get_config():
 
     model_name, sign_model_params, dim_model = get_sign_encoder()
     cfg.model_name = model_name
+
+    # Read num_classes dynamically from the pseudo-gloss pkl so the model's
+    # classification head matches whatever spaCy lemmatizer produced the
+    # pickle. Upstream hardcoded 2306, but the actual count drifts with
+    # spaCy versions (release pkl has 2533, current spaCy 3.7 produces 2338).
+    # A mismatch crashes training with "tensor size (X) must match (Y)".
+    import pickle as _pickle
+    _pkl_path = f"{code_path}/data/phoenix2014t/processed_words.phx_pkl"
+    with open(_pkl_path, "rb") as _f:
+        _pg = _pickle.load(_f)
+    _num_classes = len(_pg["dict_lem_to_id"])
+    print(f"[config] num_classes = {_num_classes} (from {_pkl_path})")
+
     post_params = {
         "in_dim": dim_model,
         "hidden_dim": 300,
-        "num_classes": 2306, # NOTE: if using the config in github release pkl then num classes is 2533, spacy seems to have changed something
+        "num_classes": _num_classes,
         "dropout": 0.2,
         "class_temperature": 0.1,
         "time_temperature": 0.1,
