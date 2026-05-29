@@ -64,6 +64,13 @@ pip install --no-cache-dir \
     spacy==3.7.4 \
     opencv-python==4.8.1.78
 
+# xformers (required by models/metaformer/emb/sine_pos.py for positional
+# embeddings - imports `xformers.components.positional_embedding`).
+# Not in the upstream requirements list; missing it causes training to crash
+# at model init with `ModuleNotFoundError: No module named 'xformers'`.
+# Letting pip pick the version that matches the installed torch/CUDA.
+pip install --no-cache-dir xformers
+
 # spaCy German model (used by pseudo_gloss_de.py)
 # Note: `python -m spacy download` builds a malformed URL on some RunPod pod
 # templates (compatibility.json lookup leaves the version field empty,
