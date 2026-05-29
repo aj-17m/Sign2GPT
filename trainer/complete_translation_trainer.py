@@ -245,7 +245,8 @@ class Trainer(BaseTrainer):
                 output_transform=text_transform
             )
         if "orouge" in list_of_metrics:
-            from metrics.rouge_metric import RougeMetric
+            # Upstream typo: the file is metrics/rouge_score.py, not rouge_metric.
+            from metrics.rouge_score import RougeMetric
 
             def text_transform(x):
                 p_words = []
