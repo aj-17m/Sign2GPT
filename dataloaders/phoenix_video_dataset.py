@@ -115,8 +115,21 @@ class PhoenixVideoDataset(Dataset):
 
 def get_ds(ds_params, transform):
     from dataloaders.data_utils.file_utils import read_json, read_pickle
+    import os
 
     df = pd.read_csv(ds_params["csv_dir"], sep=ds_params["sep"])
+
+    # Filter out CSV rows whose LMDB directory doesn't exist on disk.
+    # The patched PHOENIX LMDB creator rejects clips with too few valid
+    # frames (after skipping 0-byte PNGs from RWTH's broken release), so
+    # the CSV may list clips that have no LMDB entry. Without this filter,
+    # __getitem__ crashes with lmdb.Error: No such file or directory.
+    _lmdb_dir = ds_params["ds_params"]["lmdb_video_dir"]
+    _before = len(df)
+    df = df[df["name"].apply(lambda n: os.path.isdir(f"{_lmdb_dir}/{n}"))].reset_index(drop=True)
+    if len(df) < _before:
+        print(f"[dataset] {ds_params['csv_dir']}: filtered {_before - len(df)} clips with missing LMDB; kept {len(df)}/{_before}")
+
     if "gloss_dir" in ds_params:
         dict_gloss_to_id = read_json(ds_params["gloss_dir"])
     else:
