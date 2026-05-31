@@ -1,0 +1,31 @@
+clip_id,split,english_text,signer_id
+clip_0001,train,hello how are you,signer_01
+clip_0002,train,my name is ajay,signer_01
+clip_0003,train,i am a student,signer_01
+clip_0004,train,good morning,signer_01
+clip_0005,train,nice to meet you,signer_01
+clip_0006,train,this is my mother,signer_01
+clip_0007,train,my father is a teacher,signer_01
+clip_0008,train,i have two brothers,signer_01
+clip_0009,train,i live in delhi,signer_01
+clip_0010,test,my school is far,signer_01
+clip_0011,dev,i need water,signer_01
+clip_0012,train,i am hungry,signer_01
+clip_0013,train,where is the bathroom,signer_01
+clip_0014,train,i want to sleep,signer_01
+clip_0015,train,today is monday,signer_01
+clip_0016,train,it is three o clock,signer_01
+clip_0017,train,i have five books,signer_01
+clip_0018,train,meet me tomorrow,signer_01
+clip_0019,train,i study computer science,signer_01
+clip_0020,test,it is raining,signer_01
+clip_0021,dev,today is hot,signer_01
+clip_0022,train,i like winter,signer_01
+clip_0023,train,i am happy,signer_01
+clip_0024,train,i feel sad,signer_01
+clip_0025,train,i am tired,signer_01
+clip_0026,train,go straight then turn left,signer_01
+clip_0027,train,the hospital is nearby,signer_01
+clip_0028,train,i want roti and dal,signer_01
+clip_0029,train,do you like tea,signer_01
+clip_0030,test,i am vegetarian,signer_01
