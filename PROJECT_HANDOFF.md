@@ -645,8 +645,269 @@ When in doubt: **give the exact command to run, then explain why.**
 
 ---
 
+## 17. RESTART GUIDE — After Pod Termination
+
+> **Most common entry point.** User has terminated the previous pod (or it died) and wants to continue. Network volume `sign2gpt-data` preserves everything important. Container disk is gone. Follow these steps in order.
+
+### Step 1 — Verify network volume has the data (1 min)
+
+In RunPod web UI:
+1. Go to **Storage → Network Volumes**
+2. Confirm `sign2gpt-data` (or whatever it's named) exists, ~150 GB, **not deleted**
+3. **Note the datacenter** (e.g., `EU-RO-1`, `US-CA-2`) — you MUST deploy a pod in the same DC
+
+If volume is missing → catastrophic data loss, would need to redo PHOENIX download/training from scratch. Should never happen unless user manually deleted it.
+
+### Step 2 — Deploy a new pod (3-5 min)
+
+In RunPod web UI:
+1. **Pods → Deploy**
+2. **Filter location** = your network volume's datacenter
+3. **GPU choice** (depending on goal):
+
+| Goal | Recommended GPU | Hourly cost | Why |
+|---|---|---|---|
+| Just inference / demo | L4 24GB | ~$0.43/hr | Cheapest that works, 20 sec per call |
+| Just inference (faster) | RTX 4090 24GB | ~$0.69/hr | ~3× faster than L4 |
+| Inference + light dev | RTX 4000 Ada 20GB | ~$0.39/hr | Cheapest workstation card |
+| Stage 1 only training | L4 24GB | ~$0.43/hr | ~10h, ~$4 total |
+| Full training (paper repro) | A100 80GB PCIe | ~$1.69/hr | Fast, proven config |
+| Full training (cheaper) | L4 24GB | ~$0.43/hr | Slower but works |
+
+**AVOID:** Blackwell GPUs (RTX PRO 4000 Blackwell, RTX 5090, B200). They have compute capability 12.x which torch 2.4.0 doesn't support. You'd get `no kernel image is available for execution on the device`.
+
+4. **Template:** `runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04`
+5. **Container disk:** 30 GB
+6. **Network volume:** Select `sign2gpt-data` → mount at `/workspace`
+7. Click **Deploy On-Demand**
+8. Wait ~30 sec for boot
+9. Click **Connect → Start Web Terminal**
+
+### Step 3 — Verify the mount worked (10 sec)
+
+```bash
+# Confirm /workspace has your stuff
+ls /workspace/Sign2GPT/setup_runpod.sh
+ls /workspace/checkpoints/phoenix_stage2_configs/PHX_example_s2_dyn_config/best_result_checkpoint_10_18.2415.pt
+ls /workspace/lmdb/phoenix2014t/lmdb_videos | wc -l
+df -h /workspace
+```
+
+Expected:
+- First two `ls` print the file path (not "not found")
+- Count is ~7794 (LMDB clip dirs)
+- `df` shows the 150 GB network volume mounted at `/workspace`
+
+If any of these fail → network volume didn't mount. Stop, redeploy with correct mount.
+
+### Step 4 — Container-disk bootstrap (~8-12 min)
+
+This is the same every time because container disk wipes on terminate. Copy-paste the entire block:
+
+```bash
+# 1. System libs (apt)
+apt-get update && apt-get install -y \
+    tmux ffmpeg \
+    zlib1g-dev libjpeg-dev libpng-dev libtiff-dev libfreetype6-dev
+
+# 2. Python deps
+pip install --no-cache-dir \
+    albumentations==1.4.13 \
+    numpy==1.24.4 \
+    pandas==2.0.1 \
+    transformers==4.31.0 \
+    lmdb==1.2.1 \
+    timm==0.9.16 \
+    ml-collections==0.1.1 \
+    pytorch-ignite==0.4.13 \
+    Pillow==9.0.1 \
+    matplotlib \
+    nlpaug==1.1.11 \
+    nltk==3.6.7 \
+    sentencepiece==0.1.99 \
+    einops==0.8.0 \
+    mediapipe==0.10.5 \
+    onnxscript \
+    albucore==0.0.13 \
+    spacy==3.7.4 \
+    opencv-python==4.8.1.78 \
+    pybind11
+
+# 3. fasttext (special — needs --no-build-isolation)
+pip install --no-build-isolation fasttext==0.9.2
+
+# 4. spaCy German model (direct wheel)
+pip install https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.7.0/de_core_news_lg-3.7.0-py3-none-any.whl
+
+# 5. Re-pin torch (some deps may have upgraded it silently)
+pip install --force-reinstall torch==2.4.0 torchvision==0.19.0 \
+    --index-url https://download.pytorch.org/whl/cu124
+
+# 6. xformers pinned to torch 2.4.x-compatible version
+pip install xformers==0.0.27.post2 --no-deps
+
+# 7. Fix scikit-image numpy ABI (common issue — installer pulls newer numpy/scipy/skimage)
+pip install --force-reinstall scikit-image==0.22.0 numpy==1.24.4
+```
+
+### Step 5 — Verify the environment (15 sec)
+
+```bash
+python -c "
+import torch
+print('Torch:', torch.__version__)
+print('GPU:', torch.cuda.get_device_name(0))
+print('Compute:', torch.cuda.get_device_capability(0))
+print('CUDA available:', torch.cuda.is_available())
+x = torch.randn(2, 3).cuda()
+print('Tensor on GPU OK:', x.shape)
+"
+
+python -c "
+import ml_collections, transformers, albumentations, timm, einops, lmdb, ignite, xformers, cv2
+from PIL import Image
+print('All imports OK')
+"
+```
+
+Both should succeed with no errors. If you see:
+- `no kernel image is available for execution on the device` → GPU is Blackwell, terminate and pick a different GPU
+- `numpy.dtype size changed` → repeat step 7 of bootstrap
+- `ModuleNotFoundError` for any X → `pip install X` (then add to your local notes)
+
+### Step 6 — Pull the latest patches (5 sec)
+
+```bash
+cd /workspace/Sign2GPT
+git pull origin validation/phoenix-12h-run
+```
+
+This grabs any new fixes added since your last session.
+
+### Step 7 — Start tmux (mandatory for >2 min work)
+
+```bash
+tmux new -s work
+```
+
+Detach later with **Ctrl+B then D**, reattach with `tmux attach -t work`.
+
+### Step 8 — Pick what to do
+
+Based on your goal:
+
+#### Option A — Test inference on a video (most common)
+
+```bash
+# Upload your MP4 via RunPod web UI to /workspace/test_videos/
+mkdir -p /workspace/test_videos
+# (drag MP4 to /workspace/test_videos/ in RunPod Files tab)
+
+# Translate it
+python scripts/infer_video.py --video /workspace/test_videos/your_video.mp4
+```
+
+Takes ~20 sec (mostly model loading). Outputs German translation.
+
+#### Option B — Re-evaluate the model / cherry-pick demo samples
+
+```bash
+# Use existing log without re-running training
+python scripts/match_predictions_to_clips.py \
+    --split dev \
+    --log /workspace/results/stage2.log \
+    --out /workspace/dev_clip_predictions.csv
+
+head -20 /workspace/dev_clip_predictions.csv | column -t -s '|'
+```
+
+#### Option C — Extend training (more epochs for better demo quality)
+
+```bash
+# Edit configs to bump epochs
+sed -i 's/cfg.max_epochs = 12/cfg.max_epochs = 40/' \
+    configs/phoenix2014t/phoenix_stage1_configs/PHX_example_s1_dyn_config.py
+sed -i 's/cfg.max_epochs = 10/cfg.max_epochs = 40/' \
+    configs/phoenix2014t/phoenix_stage2_configs/PHX_example_s2_dyn_config.py
+
+# Run — trainer auto-resumes from existing checkpoints
+PHOENIX_URL='https://www-i6.informatik.rwth-aachen.de/ftp/pub/rwth-phoenix/2016/phoenix-2014-T.v3.tar.gz' \
+    bash setup_runpod.sh
+```
+
+Cost estimate for going from 12→40 epochs stage 1 and 10→40 epochs stage 2:
+- On L4: ~25-30 additional hours, ~$11-13
+- On A100: ~12-15 additional hours, ~$23-28
+
+#### Option D — Start fresh (only if data was somehow lost)
+
+This should never be needed unless network volume was deleted. If it was, recovery is ~12h training + ~$5-25:
+
+```bash
+PHOENIX_URL='https://www-i6.informatik.rwth-aachen.de/ftp/pub/rwth-phoenix/2016/phoenix-2014-T.v3.tar.gz' \
+    bash setup_runpod.sh
+```
+
+This runs all 7 phases from scratch (download, extract, LMDB, vocab, stage 1, stage 2, summary).
+
+### Step 9 — When done, terminate cleanly
+
+```bash
+# Optional: verify nothing's actively running
+tmux ls
+ps aux | grep python | grep -v grep
+
+# Make sure your work is saved on /workspace, not /tmp or container disk
+ls -lh /workspace/results/
+ls -lh /workspace/checkpoints/
+```
+
+Then **RunPod UI → Terminate pod**. Network volume keeps everything.
+
+Idle cost: ~$0.34/day for the 150 GB volume (just the storage rental).
+
+### Full Restart TL;DR (copy-paste flowchart)
+
+```
+1. RunPod UI → Deploy
+   - Same DC as network volume
+   - Non-Blackwell GPU (L4 / RTX 4090 / A100)
+   - PyTorch 2.4.0 template
+   - Mount sign2gpt-data at /workspace
+
+2. Web Terminal → check `ls /workspace/Sign2GPT/setup_runpod.sh` works
+
+3. Bootstrap (one big paste, ~10 min):
+   apt-get install ... && pip install ... && pip install fasttext ... &&
+   pip install spacy model wheel && force-reinstall torch + xformers + scikit-image
+
+4. Verify with `python -c "import torch; print(torch.cuda.get_device_name(0))"`
+
+5. `cd /workspace/Sign2GPT && git pull origin validation/phoenix-12h-run`
+
+6. `tmux new -s work`
+
+7. Run what you came to do (inference / training / etc)
+
+8. Terminate via RunPod UI when done.
+```
+
+### Common restart mistakes (avoid these)
+
+| Mistake | Symptom | Fix |
+|---|---|---|
+| Pod in wrong datacenter | "Cannot attach volume" error at deploy | Pick same DC as `sign2gpt-data` |
+| Picked Blackwell GPU | `no kernel image is available` on first CUDA op | Terminate, pick Ada/Ampere/Hopper |
+| Forgot tmux, browser closed | Training silently died after closing tab | Always `tmux new -s work` before long-running stuff |
+| Skipped force-reinstall of torch | `RuntimeError: NVIDIA driver too old` | Re-run step 5 of bootstrap |
+| Skipped scikit-image fix | `numpy.dtype size changed` | Re-run step 7 of bootstrap |
+| Did `pip install xformers` without `--no-deps` | Torch gets upgraded, then driver too old | Always `xformers==0.0.27.post2 --no-deps` |
+| Used `python -m spacy download` | Broken URL with leading dash | Use direct wheel URL (step 4 of bootstrap) |
+
+---
+
 ## END OF HANDOFF DOCUMENT
 
 If you're an AI reading this for the first time: you now have full context. Ask the user what they want to do today; don't waste time re-asking what's already documented here. Refer back to specific sections as needed.
 
-Last updated: 2026-05-31 (after live video inference confirmed working on L4 + RTX 2000 Ada with bug fix journey complete)
+Last updated: 2026-05-31 (after live video inference confirmed working on L4 + RTX 2000 Ada with bug fix journey complete; added Section 17 restart guide)
