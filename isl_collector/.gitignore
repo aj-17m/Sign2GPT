@@ -1,0 +1,10 @@
+# Local data (videos, database) — never commit
+data.db
+data.db-*
+videos/
+uploads/
+exports/
+__pycache__/
+*.pyc
+.env
+test_data/

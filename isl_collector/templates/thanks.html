@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanks for your submission!</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>🎉 Thanks for contributing!</h1>
+    </header>
+
+    <main>
+        <div class="upload-card">
+            <h2>Your submission was received</h2>
+            <p><strong>Submission ID:</strong> #{{ submission_id }}</p>
+            <p><strong>English text:</strong> "{{ english_text }}"</p>
+            <p><strong>File size:</strong> {{ filesize_mb }} MB</p>
+
+            <p>Your video is now in our review queue. We'll check it for quality and add it to the
+            training dataset.</p>
+
+            <div class="button-row">
+                <a href="/" class="btn-primary">Submit Another Video</a>
+            </div>
+
+            <hr>
+            <p class="small">
+                Want to help more? Try recording yourself signing different sentences —
+                greetings, daily phrases, time/numbers, weather, etc. The more variety,
+                the better the model learns.
+            </p>
+        </div>
+    </main>
+
+    <footer>
+        <p>Open-source project. Data used for ISL → English translation research.
+        <a href="/">Back to home</a></p>
+    </footer>
+</body>
+</html>
