@@ -3,96 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISL Sign Language Data Collection</title>
+    <title>ISL → English Translation — Contribute a Video</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <header>
-        <h1>🤟 Indian Sign Language Translator — Help Us Build It</h1>
-        <p class="subtitle">Contribute a sign video + English meaning. We're building a free ISL → English translator.</p>
-    </header>
-
     <main>
-        <section class="stats-bar">
-            <div class="stat">
-                <strong>{{ stats.total }}</strong>
-                <span>total submissions</span>
-            </div>
-            <div class="stat">
-                <strong>{{ stats.approved }}</strong>
-                <span>approved</span>
-            </div>
-            <div class="stat">
-                <strong>{{ stats.pending }}</strong>
-                <span>pending review</span>
-            </div>
+        <header>
+            <h1>Help Build an ISL → English Translator</h1>
+            <p class="subtitle">Upload a short Indian Sign Language video and type what it means in English.</p>
+        </header>
+
+        <section class="instructions">
+            <h2>How it works</h2>
+            <ol>
+                <li>Record yourself signing one sentence (3–10 seconds)</li>
+                <li>Upload the video below</li>
+                <li>Type the English meaning</li>
+                <li>Submit — your data is saved instantly</li>
+            </ol>
+        </section>
+
+        <section class="instructions tips">
+            <h2>Tips for good recordings</h2>
+            <ul>
+                <li>Plain background (white or gray wall)</li>
+                <li>Good lighting, facing you</li>
+                <li>Camera at chest height, upper body visible</li>
+                <li>Solid color clothes (no patterns)</li>
+                <li>Keep it 3–10 seconds, one sentence per video</li>
+            </ul>
         </section>
 
         <section class="upload-card">
-            <h2>Upload a sign video</h2>
             <form action="/submit" method="post" enctype="multipart/form-data">
 
                 <div class="field">
-                    <label for="video">1. Video of you signing (MP4, max 50 MB)</label>
+                    <label for="video">
+                        <span class="label-num">1</span>
+                        Video <span class="required">*</span>
+                    </label>
                     <input type="file" id="video" name="video" accept="video/*" required>
-                    <small>Record yourself signing one ISL sentence. 3-10 seconds is ideal.</small>
+                    <small>MP4, MOV, WEBM. Max 50 MB.</small>
                 </div>
 
                 <div class="field">
-                    <label for="english_text">2. What does the sign mean? (in English)</label>
+                    <label for="english_text">
+                        <span class="label-num">2</span>
+                        English meaning <span class="required">*</span>
+                    </label>
                     <input type="text" id="english_text" name="english_text"
                            placeholder="e.g., hello how are you" maxlength="500" required>
-                    <small>Type the English meaning. Lowercase, no punctuation. Example: "i am hungry"</small>
+                    <small>Lowercase, no punctuation. Just plain English.</small>
                 </div>
 
                 <div class="field">
-                    <label for="signer_name">3. Your name (optional)</label>
+                    <label for="signer_name">
+                        <span class="label-num">3</span>
+                        Your name <span class="optional">(optional)</span>
+                    </label>
                     <input type="text" id="signer_name" name="signer_name"
-                           placeholder="Ajay" maxlength="50">
-                    <small>So we can credit you. Leave blank to stay anonymous.</small>
+                           placeholder="Leave blank to stay anonymous" maxlength="50">
                 </div>
 
-                <div class="field">
-                    <label for="email">4. Email (optional)</label>
-                    <input type="email" id="email" name="email"
-                           placeholder="you@example.com" maxlength="100">
-                    <small>If we have questions about your video. We won't spam you.</small>
-                </div>
-
-                <button type="submit" class="btn-primary">Submit Video</button>
+                <button type="submit" class="btn-primary">Submit</button>
             </form>
         </section>
 
-        <section class="instructions">
-            <h2>📋 Tips for good recordings</h2>
-            <ul>
-                <li><strong>Plain background</strong> — white/gray wall works best</li>
-                <li><strong>Good lighting</strong> — face well-lit from the front</li>
-                <li><strong>Camera at chest height</strong> — show your whole upper body</li>
-                <li><strong>Sign cleanly</strong> — pause briefly before and after</li>
-                <li><strong>One sentence per video</strong> — keep it 3-10 seconds</li>
-                <li><strong>Solid color clothes</strong> — no busy patterns</li>
-            </ul>
-        </section>
-
-        <section class="instructions">
-            <h2>🎯 What we need</h2>
-            <p>We're collecting ~1000 short ISL clips paired with English translations to train an open-source
-            sign language translator. Every submission helps make sign language tech accessible.</p>
-            <p><strong>Sample sentences to try:</strong></p>
-            <ul class="examples">
-                <li>"hello how are you" / "good morning" / "thank you"</li>
-                <li>"my name is [name]"</li>
-                <li>"i am hungry" / "i need water"</li>
-                <li>"today is monday" / "it is raining"</li>
-                <li>"i live in [city]"</li>
-            </ul>
+        <section class="counter">
+            <p><strong>{{ stats.total }}</strong> videos contributed so far. Thank you!</p>
         </section>
     </main>
 
     <footer>
-        <p>Open-source project. Data used for ISL → English translation research.
-        Code: <a href="https://github.com/aj-17m/Sign2GPT">github.com/aj-17m/Sign2GPT</a></p>
+        <p>Open-source project — videos help train a free ISL → English translation model.</p>
     </footer>
 </body>
 </html>

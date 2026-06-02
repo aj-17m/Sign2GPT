@@ -1,139 +1,153 @@
-/* Clean, mobile-friendly styling for the ISL collector */
+/* Simple, clean, mobile-first */
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background: #f7f9fc;
-    color: #1a2533;
+    background: #f4f6fa;
+    color: #1f2937;
     line-height: 1.6;
 }
 
+main {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 32px 20px 60px 20px;
+}
+
 header {
-    background: linear-gradient(135deg, #4c6fff 0%, #3a52cc 100%);
-    color: white;
-    padding: 32px 16px;
     text-align: center;
+    margin-bottom: 32px;
 }
 
 header h1 {
     margin: 0 0 8px 0;
     font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.25;
 }
 
-header .subtitle {
+.subtitle {
     margin: 0;
-    opacity: 0.92;
+    color: #4b5563;
     font-size: 16px;
-}
-
-main {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 24px 16px;
 }
 
 footer {
     text-align: center;
-    padding: 24px 16px;
-    color: #666;
-    font-size: 14px;
+    padding: 20px;
+    color: #9ca3af;
+    font-size: 13px;
 }
 
-footer a {
-    color: #4c6fff;
-}
+footer a { color: #4c6fff; }
 
-/* Stats bar */
-.stats-bar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
 
-.stat {
+/* Sections */
+
+.instructions {
     background: white;
-    border-radius: 8px;
-    padding: 12px 18px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    text-align: center;
-    min-width: 100px;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
-.stat strong {
-    display: block;
-    font-size: 24px;
-    color: #4c6fff;
+.instructions h2 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: #374151;
+    font-weight: 600;
 }
 
-.stat span {
-    font-size: 12px;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.instructions ol,
+.instructions ul {
+    margin: 0;
+    padding-left: 22px;
 }
 
-.stat-pending strong { color: #f59e0b; }
-.stat-approved strong { color: #10b981; }
-.stat-rejected strong { color: #ef4444; }
+.instructions li {
+    margin-bottom: 4px;
+    color: #4b5563;
+    font-size: 15px;
+}
 
-/* Upload card */
+.tips {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+}
+
+
+/* Upload form */
+
 .upload-card {
     background: white;
-    border-radius: 12px;
-    padding: 32px;
+    border-radius: 14px;
+    padding: 28px 24px;
     margin-bottom: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.upload-card h2 {
-    margin-top: 0;
-    font-size: 22px;
-    color: #1a2533;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .field {
-    margin-bottom: 24px;
+    margin-bottom: 22px;
 }
 
 .field label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-weight: 600;
     margin-bottom: 8px;
-    color: #2a3447;
+    color: #1f2937;
+    font-size: 15px;
 }
 
+.label-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: #4c6fff;
+    color: white;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.required { color: #ef4444; font-weight: normal; }
+.optional { color: #9ca3af; font-weight: 400; font-size: 13px; }
+
 .field input[type="file"],
-.field input[type="text"],
-.field input[type="email"] {
+.field input[type="text"] {
     width: 100%;
     padding: 12px 14px;
-    border: 1.5px solid #d0d7de;
+    border: 1.5px solid #d1d5db;
     border-radius: 8px;
     font-size: 16px;
     background: white;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .field input:focus {
     outline: none;
     border-color: #4c6fff;
+    box-shadow: 0 0 0 3px rgba(76,111,255,0.15);
 }
 
 .field small {
     display: block;
     margin-top: 6px;
-    color: #666;
+    color: #6b7280;
     font-size: 13px;
 }
 
+
 /* Buttons */
+
 .btn-primary {
     background: #4c6fff;
     color: white;
@@ -144,155 +158,105 @@ footer a {
     border-radius: 8px;
     cursor: pointer;
     width: 100%;
-    transition: background 0.15s;
+    transition: background 0.15s, transform 0.05s;
     text-decoration: none;
     display: inline-block;
     text-align: center;
 }
 
-.btn-primary:hover {
-    background: #3a52cc;
-}
+.btn-primary:hover { background: #3a52cc; }
+.btn-primary:active { transform: translateY(1px); }
 
-.button-row {
-    margin-top: 24px;
-}
 
-.btn-approve, .btn-reject {
-    padding: 8px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-right: 8px;
-}
+/* Counter at bottom of home page */
 
-.btn-approve {
-    background: #10b981;
-    color: white;
-}
-.btn-approve:hover { background: #059669; }
-
-.btn-reject {
-    background: #ef4444;
-    color: white;
-}
-.btn-reject:hover { background: #dc2626; }
-
-/* Instructions */
-.instructions {
-    background: white;
-    border-radius: 12px;
-    padding: 24px 28px;
-    margin-bottom: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.instructions h2 {
-    margin-top: 0;
-    font-size: 18px;
-}
-
-.instructions ul {
-    margin: 8px 0;
-    padding-left: 22px;
-}
-
-.instructions li {
-    margin-bottom: 6px;
-}
-
-.examples li {
-    list-style: '✓ ';
-    color: #444;
-}
-
-/* Admin: submission cards */
-.submissions-list {
-    margin-top: 16px;
-}
-
-.submission-card {
-    background: white;
-    border-radius: 10px;
+.counter {
+    text-align: center;
+    margin-top: 20px;
     padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    border-left: 4px solid #d0d7de;
-}
-
-.submission-pending { border-left-color: #f59e0b; }
-.submission-approved { border-left-color: #10b981; }
-.submission-rejected { border-left-color: #ef4444; }
-
-.submission-header {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-}
-
-.submission-id {
-    font-weight: bold;
-    font-family: monospace;
-    color: #666;
-}
-
-.submission-status {
-    padding: 3px 10px;
+    background: white;
     border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.counter p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.counter strong {
+    color: #4c6fff;
+    font-size: 20px;
+}
+
+
+/* Thanks page */
+
+.thanks-card {
+    background: white;
+    border-radius: 14px;
+    padding: 36px 28px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.thanks-card h1 {
+    margin: 0 0 8px 0;
+    font-size: 32px;
+}
+
+.thanks-card .lead {
+    color: #4b5563;
+    margin: 0 0 28px 0;
+    font-size: 17px;
+}
+
+.receipt {
+    text-align: left;
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    border: 1px solid #e5e7eb;
+}
+
+.receipt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.receipt-row:last-child { border-bottom: none; }
+
+.receipt-label {
+    color: #6b7280;
+    font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.status-pending { background: #fef3c7; color: #92400e; }
-.status-approved { background: #d1fae5; color: #065f46; }
-.status-rejected { background: #fee2e2; color: #991b1b; }
+.receipt-value {
+    color: #1f2937;
+    font-weight: 500;
+    text-align: right;
+}
 
-.submission-time {
+.small {
     font-size: 13px;
-    color: #888;
-    margin-left: auto;
+    color: #9ca3af;
+    margin-top: 20px;
+    line-height: 1.5;
 }
 
-.submission-body {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-}
 
-.submission-body video {
-    border-radius: 6px;
-    background: #000;
-    max-width: 100%;
-}
+/* Mobile */
 
-.submission-info {
-    flex: 1;
-    min-width: 200px;
-}
-
-.submission-info p {
-    margin: 4px 0;
-}
-
-.submission-actions {
-    border-top: 1px solid #eee;
-    padding-top: 12px;
-}
-
-.small { font-size: 12px; color: #888; }
-.muted { color: #888; }
-
-/* Mobile responsive */
-@media (max-width: 600px) {
-    header h1 { font-size: 22px; }
-    .upload-card { padding: 20px; }
-    main { padding: 16px 12px; }
+@media (max-width: 500px) {
+    main { padding: 24px 14px 40px 14px; }
+    header h1 { font-size: 24px; }
+    .upload-card { padding: 22px 18px; }
+    .instructions { padding: 18px 20px; }
 }

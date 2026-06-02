@@ -3,40 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thanks for your submission!</title>
+    <title>Thanks for contributing!</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <header>
-        <h1>🎉 Thanks for contributing!</h1>
-    </header>
-
     <main>
-        <div class="upload-card">
-            <h2>Your submission was received</h2>
-            <p><strong>Submission ID:</strong> #{{ submission_id }}</p>
-            <p><strong>English text:</strong> "{{ english_text }}"</p>
-            <p><strong>File size:</strong> {{ filesize_mb }} MB</p>
+        <div class="thanks-card">
+            <h1>🎉 Thanks!</h1>
+            <p class="lead">Your video was saved.</p>
 
-            <p>Your video is now in our review queue. We'll check it for quality and add it to the
-            training dataset.</p>
-
-            <div class="button-row">
-                <a href="/" class="btn-primary">Submit Another Video</a>
+            <div class="receipt">
+                <div class="receipt-row">
+                    <span class="receipt-label">Submission ID</span>
+                    <span class="receipt-value">#{{ submission_id }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">English text</span>
+                    <span class="receipt-value">"{{ english_text }}"</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">File size</span>
+                    <span class="receipt-value">{{ filesize_mb }} MB</span>
+                </div>
             </div>
 
-            <hr>
-            <p class="small">
-                Want to help more? Try recording yourself signing different sentences —
-                greetings, daily phrases, time/numbers, weather, etc. The more variety,
-                the better the model learns.
-            </p>
+            <a href="/" class="btn-primary">Submit Another Video</a>
+
+            <p class="small">Want to help more? Record yourself signing different sentences —
+            greetings, daily phrases, time, weather, food. More variety = better model.</p>
         </div>
     </main>
 
     <footer>
-        <p>Open-source project. Data used for ISL → English translation research.
-        <a href="/">Back to home</a></p>
+        <p><a href="/">Back to home</a></p>
     </footer>
 </body>
 </html>
