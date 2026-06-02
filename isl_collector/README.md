@@ -1,207 +1,263 @@
-# ISL Sign Language Data Collection Pipeline
+# ISL Data Collection Pipeline (AWS S3 + Render edition)
 
-A FastAPI web app where anyone can upload an ISL sign video + the English meaning.
-Admin reviews submissions. Approved data accumulates on `/workspace`, ready to feed
-into the Sign2GPT ISL training pipeline.
+A free-to-run web app where anyone can upload an ISL sign video + English meaning.
+Videos go to AWS S3 (or any S3-compatible service). The app itself runs free on
+Render. Total cost during collection: **$0/month**.
 
-## How it works
+When you have enough data, run one command on a RunPod GPU pod to sync everything
+down for ISL training.
+
+## Architecture
 
 ```
-[Anyone on the internet]
-        │
-        │ visits https://your-pod-url/
-        │ uploads video + types English text
-        │
-        ▼
-[FastAPI app on RunPod CPU pod]
-        │
-        │ saves video to /workspace/isl_data/videos/
-        │ records row in /workspace/isl_data/data.db
-        │
-        ▼
-[You at /admin]
-        │
-        │ password-protected dashboard
-        │ watches each video, approves/rejects
-        │ clicks "Export ZIP" when ready
-        │
-        ▼
-[Approved data ready for ISL training]
+                                ANYONE
+                                  │
+                                  │ visits your public URL
+                                  ▼
+                  ┌────────────────────────────┐
+                  │  Render free tier          │
+                  │  (FastAPI web app)         │
+                  └────────────────────────────┘
+                       │              │
+       receives video  │              │ admin views/approves
+       + English text  ▼              ▼
+                  ┌────────────┐  ┌─────────────────┐
+                  │  AWS S3    │  │  /admin (you)   │
+                  │  isl-videos│  │                 │
+                  └────────────┘  └─────────────────┘
+                       │
+                       │ when ready to train (every few weeks)
+                       ▼
+                  ┌────────────────────────────┐
+                  │  RunPod GPU pod            │
+                  │  aws s3 sync s3://...      │
+                  │  -> /workspace/data/isl/   │
+                  │  then train ISL model      │
+                  └────────────────────────────┘
 ```
 
-## Quick start — local testing on your laptop
+## Cost
+
+| Service | Free tier | After free |
+|---|---|---|
+| Render (web app hosting) | 750 hours/month free | $7/month |
+| AWS S3 (storage) | 5 GB for 12 months | $0.023/GB/month |
+| AWS S3 (bandwidth out) | 100 GB/month for 12 months | $0.09/GB |
+| RunPod GPU pod (only when training) | n/a | ~$20-30 per training run |
+| **Monthly during collection** | | **$0** |
+
+After 12 months of AWS free tier, AWS S3 costs ~$0.20/month for 10 GB.
+You can also switch to Cloudflare R2 anytime (10 GB free forever).
+
+## Setup — Part 1: AWS S3 (one-time, ~15 min)
+
+### 1.1 Create an AWS account
+
+1. Go to https://aws.amazon.com → Create Account
+2. Credit card required (free tier won't charge unless you exceed limits)
+3. Sign in to the AWS Console
+
+### 1.2 Create an S3 bucket
+
+1. Search "S3" → click S3
+2. Click "Create bucket"
+3. Bucket name: `isl-videos` (or any unique name)
+4. Region: pick one near you (e.g., `ap-south-1` for India, `us-east-1` for US)
+5. **Block all public access** → keep enabled (default)
+6. Click "Create bucket"
+
+### 1.3 Create IAM credentials
+
+1. Search "IAM" → click IAM
+2. Users → Add users
+3. User name: `isl-collector-app`
+4. Click Next → "Attach policies directly" → search "AmazonS3FullAccess" → check it
+5. Click Next → Create user
+6. Click on the new user → Security credentials tab
+7. Click "Create access key" → "Application running outside AWS" → Next → Create
+8. **Save these somewhere safe:**
+   - Access key ID (looks like `AKIA...`)
+   - Secret access key (long random string)
+   - **You won't see the secret again — store it now**
+
+## Setup — Part 2: Deploy to Render (one-time, ~15 min)
+
+### 2.1 Create Render account
+
+1. Go to https://render.com → Sign up (use GitHub login - easier)
+2. No credit card needed for free tier
+
+### 2.2 Connect your GitHub repo
+
+1. Click "New +" → "Web Service"
+2. Connect your GitHub account → select `aj-17m/Sign2GPT` repo
+3. Configure:
+   - **Name:** `isl-collector` (or any name - this becomes part of the public URL)
+   - **Region:** pick same as your S3 region if possible
+   - **Branch:** `validation/phoenix-12h-run`
+   - **Root Directory:** `isl_collector`
+   - **Runtime:** Python 3
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Instance Type:** Free
+
+### 2.3 Add environment variables in Render
+
+Scroll down to "Environment Variables" and add:
+
+| Key | Value |
+|---|---|
+| `S3_BUCKET` | `isl-videos` (or your bucket name) |
+| `S3_REGION` | `us-east-1` (or your region) |
+| `S3_ACCESS_KEY` | `AKIA...` (from IAM step 1.3) |
+| `S3_SECRET_KEY` | your secret access key |
+| `ADMIN_PASSWORD` | choose a strong password ONLY YOU KNOW |
+| `MAX_VIDEO_MB` | `50` |
+| `LOCAL_DB_PATH` | `/tmp/isl_data.db` |
+
+(Skip `S3_ENDPOINT_URL` — only needed for non-AWS S3 like Cloudflare R2.)
+
+### 2.4 Deploy
+
+Click "Create Web Service". Render will:
+1. Pull your code from GitHub
+2. Run `pip install -r requirements.txt` (~2 min)
+3. Start the app
+4. Give you a public URL like `https://isl-collector.onrender.com`
+
+After ~3 minutes, visit your URL. You should see the upload form.
+
+### 2.5 Test it
+
+1. Open URL in your browser
+2. Upload a test video + type "test sentence" → Submit
+3. You should see "Thanks for contributing!"
+4. Visit `<URL>/admin` → username `admin`, password = your `ADMIN_PASSWORD`
+5. You'll see your test submission with embedded video preview
+6. Approve it → confirm it moves to "approved"
+
+If all that works → you have a live public ISL collection pipeline. 🎉
+
+## Setup — Part 3: Share + collect data (weeks)
+
+Share your URL with:
+- Indian Sign Language signers in your community
+- Friends/family who can sign
+- Deaf communities online (Reddit r/deaf, Facebook groups)
+- Indian Sign Language interpreters
+- Your college's signing club / NSS
+
+Each visitor uploads (video + English meaning) at their own pace. You moderate
+via `/admin`. Aim for ~1000 approved submissions for a usable first ISL model.
+
+## Setup — Part 4: Train ISL model (when ready)
+
+After collecting ~500-1000 approved submissions:
+
+### 4.1 Option A: Download ZIP from admin (easiest)
+
+1. Visit `<URL>/admin`
+2. Click "Download ZIP" — gets a `.zip` with:
+   - `raw_videos/clip_NNNN.mp4` (all approved videos, renamed sequentially)
+   - `annotations.csv` (already in the format `ISL_TRAINING_GUIDE.md` expects)
+3. Upload to RunPod via web UI to `/workspace/data/isl/`
+4. Unzip → follow `ISL_TRAINING_GUIDE.md` Phase 4 onwards
+
+### 4.2 Option B: Sync directly from S3 (faster for big datasets)
+
+On a RunPod GPU pod with `sign2gpt-data` volume mounted:
 
 ```bash
-# In this directory:
+# Set AWS credentials (same as Render env vars)
+export AWS_ACCESS_KEY_ID=AKIA...
+export AWS_SECRET_ACCESS_KEY=your-secret
+export AWS_DEFAULT_REGION=us-east-1
+
+# Sync everything from S3 to /workspace
+cd /workspace/Sign2GPT
+bash isl_collector/sync_s3_to_runpod.sh isl-videos /workspace/data/isl/raw_videos
+
+# This will download ALL submissions (including non-approved).
+# If you only want approved, use Option A (Download ZIP from admin).
+```
+
+After that, follow `ISL_TRAINING_GUIDE.md`:
+- Phase 4: `python scripts/isl/mp4_to_frames.py`
+- Phase 5: build pseudo-gloss
+- Phase 6: LMDB conversion
+- Phase 8: train
+
+## Local testing (before deploying)
+
+Run on your laptop to verify everything works:
+
+```bash
+# Install dependencies
+cd isl_collector
 pip install -r requirements.txt
 
-# Run locally with a test data dir (NOT /workspace)
-export ISL_DATA_ROOT=./test_data
-export ADMIN_PASSWORD=mypassword
+# Create a .env file
+cp .env.example .env
+# Edit .env with your S3 credentials and admin password
+
+# Load env vars and start
+export $(cat .env | xargs)
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-# Visit http://localhost:8000 to test the upload form
-# Visit http://localhost:8000/admin with user=admin password=mypassword to review
+# Visit http://localhost:8000
 ```
-
-## Deploy on RunPod (production)
-
-### Step 1 — Pick the cheapest CPU pod
-
-In RunPod:
-1. Deploy → search **CPU pods** (no GPU needed)
-2. Pick the cheapest available (e.g., 2 vCPU + 4 GB RAM, ~$0.04-0.10/hr)
-3. Same datacenter as your `sign2gpt-data` network volume
-4. Container disk: 20 GB
-5. Mount network volume `sign2gpt-data` at `/workspace`
-6. **Expose port 8000** (HTTP) — this gives you a public URL
-7. Template: any Ubuntu/Python (e.g., `runpod/pytorch:2.4.0`)
-8. Deploy
-
-### Step 2 — Set up the app
-
-In Web Terminal:
-
-```bash
-# Clone the repo
-cd /workspace
-git clone -b validation/phoenix-12h-run https://github.com/aj-17m/Sign2GPT.git ISL_app
-# (Or use existing Sign2GPT/ clone)
-cd Sign2GPT/isl_collector
-
-# Install dependencies (~30 sec)
-pip install -r requirements.txt
-
-# Set environment variables (CHANGE THE PASSWORD)
-export ISL_DATA_ROOT=/workspace/isl_data
-export ADMIN_PASSWORD=your_secret_password_here
-export MAX_VIDEO_MB=50
-
-# Run the app (in tmux so it survives terminal close)
-apt-get install -y tmux
-tmux new -s isl_app
-uvicorn main:app --host 0.0.0.0 --port 8000
-
-# Detach: Ctrl+B then D
-```
-
-### Step 3 — Get your public URL
-
-RunPod automatically provides a public proxy URL for exposed ports:
-```
-https://<your-pod-id>-8000.proxy.runpod.net
-```
-
-Find this URL in:
-- RunPod web UI → your pod → "Connect" → look for "HTTP Service" port 8000
-- Or check pod logs for the exposed URL
-
-### Step 4 — Test
-
-1. Visit the URL → see upload form
-2. Upload a test video
-3. Visit `<URL>/admin`, log in with your password, approve it
-4. Done — pipeline working publicly
-
-## Endpoints
-
-| URL | Auth | Purpose |
-|---|---|---|
-| `/` | Public | Upload form |
-| `/submit` | Public | POST endpoint (form submits here) |
-| `/health` | Public | Health check |
-| `/admin` | Password | Dashboard with all submissions |
-| `/admin/video/{id}` | Password | Stream a video for preview |
-| `/admin/approve/{id}` | Password | Approve a submission |
-| `/admin/reject/{id}` | Password | Reject a submission |
-| `/admin/export` | Password | Download ZIP with approved data + CSV |
-
-## Data storage
-
-All data is on the network volume (`/workspace/isl_data/`):
-
-```
-/workspace/isl_data/
-├── videos/          ← raw uploaded MP4s (one per submission)
-├── data.db          ← SQLite database (tracking all submissions)
-└── exports/         ← generated ZIP files (one per export)
-```
-
-This persists across pod terminations because it's on the network volume.
-
-## After collecting enough data — train ISL model
-
-Once you have ~500-1000 approved submissions:
-
-1. **Export from admin dashboard:** Click "Download ZIP"
-2. **The ZIP contains:**
-   - `raw_videos/clip_NNNN.mp4` — all approved videos, renamed sequentially
-   - `annotations.csv` — clip_id, split, english_text, signer_id (already in the right format!)
-
-3. **Use the existing ISL pipeline:**
-   ```bash
-   # On a RunPod GPU pod with /workspace mounted
-   cd /workspace/Sign2GPT
-
-   # Unzip into the right location
-   unzip /workspace/isl_data/exports/isl_export_*.zip -d /workspace/data/isl/
-
-   # Run the existing ISL training pipeline (see ISL_TRAINING_GUIDE.md)
-   python scripts/isl/mp4_to_frames.py --input_dir /workspace/data/isl/raw_videos --output_dir /workspace/data/isl/frames
-   # ... etc, follow ISL_TRAINING_GUIDE.md
-   ```
-
-## Costs
-
-| Item | Cost | Notes |
-|---|---|---|
-| RunPod CPU pod (24/7) | ~$30-70/month | Cheapest CPU pod, varies by region |
-| Network volume (150 GB) | ~$10/month | Already paying for this |
-| Bandwidth | Free | RunPod includes data transfer |
-| **Total monthly** | **~$40-80** | While collecting data |
-
-When ready to train ISL (every few weeks):
-- Spin up GPU pod ~$20-50 per training run
-- Same network volume → all data already there
-- Terminate after training
-
-## Customization
-
-### Change admin password
-Edit the `ADMIN_PASSWORD` environment variable, restart the server.
-
-### Increase upload size limit
-Edit `MAX_VIDEO_MB` (default 50). Higher = more disk used per video.
-
-### Add reCAPTCHA / anti-spam
-Out of scope for v1. If spam becomes a problem, add Cloudflare in front of the pod
-(free tier handles bot protection).
-
-### Custom domain
-Use RunPod proxy URL OR set up a custom domain → Cloudflare Tunnel → your pod.
 
 ## Troubleshooting
 
-**"Can't connect to port 8000"**
-→ Make sure port 8000 is exposed in pod config. Check Connect tab → HTTP Service.
+**"InvalidAccessKeyId" or "SignatureDoesNotMatch"**
+→ S3_ACCESS_KEY or S3_SECRET_KEY is wrong. Re-check IAM credentials.
 
-**"401 Unauthorized at /admin"**
-→ Wrong password. Username is always `admin`. Set the password via `ADMIN_PASSWORD` env var.
+**"NoSuchBucket"**
+→ S3_BUCKET name typo, or region mismatch.
 
-**"413 File too large"**
-→ Upload exceeds `MAX_VIDEO_MB`. Increase the limit or compress the video.
+**Render deploy fails: "ImportError"**
+→ A package missing. Check `requirements.txt` includes everything.
 
-**"500 Internal Server Error"**
-→ Check `/workspace/isl_data/` exists and is writable. Check pod logs:
-   `tmux attach -t isl_app` to see errors.
+**Render free tier sleeps after 15 min idle**
+→ Normal. First request after sleep takes ~30 sec to wake up. Use a keepalive
+service (e.g., UptimeRobot free) to ping `/health` every 10 min to keep it warm.
 
-**Server dies after terminal close**
-→ Must run inside `tmux` (see Step 2 above).
+**Data lost after Render restart**
+→ Check the boot logs for "Restored database from s3://" message.
+   If it says "No existing database in S3", the .db backup never made it
+   to S3. Check S3 credentials and try again.
+
+**413 File too large**
+→ Increase `MAX_VIDEO_MB` env var. Render free tier has limited RAM (~512 MB),
+   so don't go above ~80 MB.
+
+**Want to use Cloudflare R2 instead of AWS S3**
+→ Add `S3_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com` to env vars.
+  R2 has 10 GB free forever (vs S3's 5 GB for 12 months only).
+
+## Security notes
+
+- **Change ADMIN_PASSWORD** before deploying. Default `changeme` is not secure.
+- HTTP Basic auth is fine for one admin, but for multiple admins use a real auth system.
+- Render's URLs are HTTPS by default — no extra config needed.
+- IAM keys: limit to S3 access only (don't use root account keys).
+- Don't commit `.env` to git (already in `.gitignore`).
+
+## What's in the code
+
+- `main.py` — FastAPI app with upload + admin endpoints
+- `database.py` — SQLite helpers + S3 backup/restore
+- `templates/index.html` — Public upload form
+- `templates/thanks.html` — Post-submit page
+- `templates/admin_dashboard.html` — Admin review queue
+- `static/style.css` — Mobile-friendly styling
+- `requirements.txt` — Python deps (FastAPI + boto3)
+- `sync_s3_to_runpod.sh` — Run on RunPod to pull videos for training
+- `.env.example` — Template for environment variables
 
 ## Project context
 
-This is part of the [Sign2GPT ISL Project](https://github.com/aj-17m/Sign2GPT). The
-data collected here is meant to train an ISL → English translation model based on the
-[Sign2GPT ICLR 2024 paper architecture](https://github.com/ryanwongsa/Sign2GPT).
+Part of the [Sign2GPT ISL Project](https://github.com/aj-17m/Sign2GPT). The data
+collected here trains an ISL → English translation model based on Sign2GPT (ICLR 2024).
 
-See `../PROJECT_HANDOFF.md` and `../ISL_TRAINING_GUIDE.md` for the full project context.
+See `../PROJECT_HANDOFF.md` and `../ISL_TRAINING_GUIDE.md` for full project context.
