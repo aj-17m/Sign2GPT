@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#6366f1">
     <title>Thanks for contributing!</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -14,11 +15,11 @@
 
             <div class="receipt">
                 <div class="receipt-row">
-                    <span class="receipt-label">Submission ID</span>
+                    <span class="receipt-label">Submission</span>
                     <span class="receipt-value">#{{ submission_id }}</span>
                 </div>
                 <div class="receipt-row">
-                    <span class="receipt-label">English text</span>
+                    <span class="receipt-label">Meaning</span>
                     <span class="receipt-value">"{{ english_text }}"</span>
                 </div>
                 <div class="receipt-row">
@@ -27,10 +28,9 @@
                 </div>
             </div>
 
-            <a href="/" class="btn-primary">Submit Another Video</a>
+            <a href="/" class="btn-primary">Upload Another</a>
 
-            <p class="small">Want to help more? Record yourself signing different sentences —
-            greetings, daily phrases, time, weather, food. More variety = better model.</p>
+            <p class="small">More variety helps the model — try different sentences, topics, and signing styles.</p>
         </div>
     </main>
 

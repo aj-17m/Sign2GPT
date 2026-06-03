@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#6366f1">
     <title>ISL Video Upload</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -13,44 +14,55 @@
             <p class="subtitle">Sign + meaning. That's it.</p>
         </header>
 
-        <div class="tab-bar">
-            <button type="button" class="tab-btn active" data-tab="single">Single Video</button>
-            <button type="button" class="tab-btn" data-tab="bulk">Bulk Upload</button>
+        <div class="tab-bar" role="tablist">
+            <button type="button" class="tab-btn active" data-tab="single" role="tab" aria-selected="true">
+                Single Video
+            </button>
+            <button type="button" class="tab-btn" data-tab="bulk" role="tab" aria-selected="false">
+                Bulk Upload
+            </button>
         </div>
 
-        <section class="upload-card" id="tab-single">
-            <form action="/submit" method="post" enctype="multipart/form-data">
+        <section class="upload-card" id="tab-single" role="tabpanel">
+            <form action="/submit" method="post" enctype="multipart/form-data" autocomplete="off">
 
                 <div class="field">
                     <label for="s_video">Video <span class="required">*</span></label>
                     <input type="file" id="s_video" name="video" accept="video/*" required>
-                    <small>MP4, MOV, WEBM. Max 50 MB.</small>
+                    <small>MP4, MOV, WEBM. Max 50&nbsp;MB.</small>
                 </div>
 
                 <div class="field">
                     <label for="s_text">English meaning <span class="required">*</span></label>
                     <input type="text" id="s_text" name="english_text"
-                           placeholder="e.g., hello how are you" maxlength="500" required>
+                           placeholder="e.g., hello how are you"
+                           maxlength="500" required
+                           autocapitalize="none" autocorrect="off" spellcheck="false">
                 </div>
 
                 <div class="field">
                     <label for="s_name">Your name <span class="required">*</span></label>
                     <input type="text" id="s_name" name="signer_name"
-                           placeholder="your name" maxlength="50" required>
+                           placeholder="your name"
+                           maxlength="50" required
+                           autocapitalize="words">
                 </div>
 
                 <div class="field">
                     <label for="s_email">Email <span class="required">*</span></label>
                     <input type="email" id="s_email" name="email"
-                           placeholder="you@example.com" maxlength="100" required>
+                           placeholder="you@example.com"
+                           maxlength="100" required
+                           autocomplete="email"
+                           inputmode="email">
                 </div>
 
                 <button type="submit" class="btn-primary">Upload</button>
             </form>
         </section>
 
-        <section class="upload-card" id="tab-bulk" style="display:none">
-            <form action="/submit-bulk" method="post" enctype="multipart/form-data">
+        <section class="upload-card" id="tab-bulk" role="tabpanel" hidden>
+            <form action="/submit-bulk" method="post" enctype="multipart/form-data" autocomplete="off">
 
                 <div class="field">
                     <label for="b_csv">CSV mapping file <span class="required">*</span></label>
@@ -70,13 +82,18 @@
                 <div class="field">
                     <label for="b_name">Your name <span class="required">*</span></label>
                     <input type="text" id="b_name" name="signer_name"
-                           placeholder="your name (applies to all videos)" maxlength="50" required>
+                           placeholder="your name (applies to all videos)"
+                           maxlength="50" required
+                           autocapitalize="words">
                 </div>
 
                 <div class="field">
                     <label for="b_email">Email <span class="required">*</span></label>
                     <input type="email" id="b_email" name="email"
-                           placeholder="you@example.com" maxlength="100" required>
+                           placeholder="you@example.com"
+                           maxlength="100" required
+                           autocomplete="email"
+                           inputmode="email">
                 </div>
 
                 <button type="submit" class="btn-primary">Upload All</button>
@@ -93,16 +110,41 @@
     </footer>
 
     <script>
-    // Simple tab switcher
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabName = btn.dataset.tab;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('tab-single').style.display = (tabName === 'single') ? '' : 'none';
-            document.getElementById('tab-bulk').style.display = (tabName === 'bulk') ? '' : 'none';
+    // Tab switcher
+    (function() {
+        const tabs = document.querySelectorAll('.tab-btn');
+        const panels = {
+            single: document.getElementById('tab-single'),
+            bulk: document.getElementById('tab-bulk'),
+        };
+
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const name = btn.dataset.tab;
+                tabs.forEach(b => {
+                    b.classList.toggle('active', b === btn);
+                    b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+                });
+                Object.entries(panels).forEach(([key, el]) => {
+                    if (!el) return;
+                    if (key === name) el.removeAttribute('hidden');
+                    else el.setAttribute('hidden', '');
+                });
+            });
         });
-    });
+
+        // Disable submit button + show "Uploading..." while in flight,
+        // so users know the upload is happening (especially for big files)
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', () => {
+                const btn = form.querySelector('.btn-primary');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Uploading...';
+                }
+            });
+        });
+    })();
     </script>
 </body>
 </html>
