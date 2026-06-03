@@ -100,8 +100,12 @@
             </form>
         </section>
 
-        <section class="counter">
-            <p><strong>{{ stats.total }}</strong> videos contributed so far. Thank you!</p>
+        <section class="mission-card">
+            <p class="mission-title">🤝 Open-source ISL → English translator</p>
+            <p class="mission-text">
+                Every video you share helps make sign-language technology more
+                accessible. Thank you for being part of it.
+            </p>
         </section>
     </main>
 
@@ -133,8 +137,7 @@
             });
         });
 
-        // Disable submit button + show "Uploading..." while in flight,
-        // so users know the upload is happening (especially for big files)
+        // Disable submit button + show "Uploading..." while in flight
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', () => {
                 const btn = form.querySelector('.btn-primary');
