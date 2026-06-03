@@ -316,6 +316,11 @@ def main():
                         help="Override stage 2 max_epochs (default: 60)")
     parser.add_argument("--force", action="store_true",
                         help="Force re-run of cached steps")
+    parser.add_argument("--fresh-start", action="store_true",
+                        help="Delete old checkpoints + cached LMDB + cached vocab "
+                             "before training. Use this when adding significantly "
+                             "more data (e.g., 500 -> 1000 clips) so the model "
+                             "trains fresh on the full updated dataset.")
     args = parser.parse_args()
 
     db_path = Path(args.db)
@@ -327,6 +332,24 @@ def main():
         print("       Has anyone uploaded a video to your collector yet?")
         print(f"       Database is created by the web app on first submission.")
         sys.exit(1)
+
+    # If --fresh-start, wipe old training state so the model retrains
+    # from scratch on the current (presumably enlarged) dataset
+    if args.fresh_start:
+        banner("Fresh start - wiping old training state")
+        targets = [
+            Path("/workspace/checkpoints/isl_stage1_config"),
+            Path("/workspace/checkpoints/isl_stage2_config"),
+            Path(args.data_dir),
+            Path(args.frames_dir),
+            Path(args.lmdb_dir).parent,
+            Path(REPO_ROOT) / "data" / "isl",
+        ]
+        for t in targets:
+            if t.exists():
+                print(f"  removing {t}")
+                shutil.rmtree(t, ignore_errors=True)
+        print("[fresh-start] Done. All steps will run from scratch.")
 
     statuses = ("pending", "approved") if args.include_pending else ("approved",)
     n_submissions = count_db_submissions(db_path, statuses)
