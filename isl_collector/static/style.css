@@ -381,8 +381,16 @@ footer a:hover { text-decoration: underline; }
 
 .thanks-card .lead {
     color: var(--text-muted);
-    margin: 0 0 28px;
+    margin: 0 0 18px;
     font-size: 16px;
+}
+
+.thanks-card .thanks-note {
+    color: var(--text-muted);
+    margin: 0 0 28px;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 0 6px;
 }
 
 .receipt {

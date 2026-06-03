@@ -32,7 +32,6 @@ from fastapi.templating import Jinja2Templates
 from database import (
     db_init,
     db_insert_submission,
-    db_get_stats,
     sync_db_from_s3,
     sync_db_to_s3,
 )
@@ -139,8 +138,7 @@ def _upload_one_video(
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    stats = db_get_stats(LOCAL_DB_PATH)
-    return templates.TemplateResponse("index.html", {"request": request, "stats": stats})
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 # ----- Single video upload -----
@@ -186,18 +184,13 @@ async def submit_single(
         raise HTTPException(400, "Video file too small or corrupted")
 
     try:
-        result = _upload_one_video(body, text, signer_name.strip(), email.strip(), size)
+        _upload_one_video(body, text, signer_name.strip(), email.strip(), size)
     except Exception as e:
         raise HTTPException(500, f"Failed to save video: {e}")
 
     _backup_db()
 
-    return templates.TemplateResponse("thanks.html", {
-        "request": request,
-        "submission_id": result["id"],
-        "english_text": text,
-        "filesize_mb": round(size / (1024 * 1024), 2),
-    })
+    return templates.TemplateResponse("thanks.html", {"request": request})
 
 
 # ----- Bulk upload (CSV + multiple videos) -----

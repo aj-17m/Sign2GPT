@@ -4,41 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#6366f1">
-    <title>Bulk upload results</title>
+    <title>Thanks for contributing!</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <main>
         <div class="thanks-card">
-            {% if n_ok == n_total and n_ok > 0 %}
-                <h1>🎉 All uploaded!</h1>
-                <p class="lead">{{ n_ok }} videos saved successfully.</p>
-            {% elif n_ok > 0 %}
-                <h1>✓ Partial upload</h1>
-                <p class="lead">{{ n_ok }} of {{ n_total }} videos saved.</p>
+            {% if n_ok > 0 and n_fail == 0 %}
+                <h1>🎉 Thank you!</h1>
+                <p class="lead">Your videos were uploaded successfully.</p>
+            {% elif n_ok > 0 and n_fail > 0 %}
+                <h1>✓ Mostly done</h1>
+                <p class="lead">Some videos were saved. A few couldn't be uploaded — please review and try again for those.</p>
             {% else %}
-                <h1>⚠ Nothing uploaded</h1>
-                <p class="lead">All {{ n_total }} videos failed. See details below.</p>
+                <h1>⚠ Something went wrong</h1>
+                <p class="lead">None of your videos could be uploaded. Please review the issues below and try again.</p>
             {% endif %}
 
-            <div class="receipt">
-                <div class="receipt-row">
-                    <span class="receipt-label">Submitted</span>
-                    <span class="receipt-value">{{ n_total }}</span>
-                </div>
-                <div class="receipt-row">
-                    <span class="receipt-label" style="color:#10b981">✓ Uploaded</span>
-                    <span class="receipt-value" style="color:#10b981">{{ n_ok }}</span>
-                </div>
-                <div class="receipt-row">
-                    <span class="receipt-label" style="color:{% if n_fail > 0 %}#ef4444{% else %}#94a3b8{% endif %}">✗ Failed</span>
-                    <span class="receipt-value" style="color:{% if n_fail > 0 %}#ef4444{% else %}#94a3b8{% endif %}">{{ n_fail }}</span>
-                </div>
-            </div>
+            <p class="thanks-note">
+                Every video helps build a better sign-language model. Thank you for taking the time to contribute.
+            </p>
 
             {% if failures %}
             <details {% if n_ok == 0 %}open{% endif %}>
-                <summary>Failed videos — fix these and re-upload</summary>
+                <summary>Videos that couldn't be uploaded — fix these and re-upload</summary>
                 <ul>
                     {% for f in failures %}
                     <li><code>{{ f.filename }}</code>: {{ f.reason }}</li>
