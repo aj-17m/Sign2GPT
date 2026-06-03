@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk upload results</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main>
+        <div class="thanks-card">
+            {% if n_ok == n_total %}
+                <h1>🎉 All uploaded!</h1>
+            {% elif n_ok > 0 %}
+                <h1>✓ Partial upload</h1>
+            {% else %}
+                <h1>⚠ Nothing uploaded</h1>
+            {% endif %}
+
+            <div class="receipt">
+                <div class="receipt-row">
+                    <span class="receipt-label">Submitted</span>
+                    <span class="receipt-value">{{ n_total }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">✓ Uploaded</span>
+                    <span class="receipt-value" style="color:#10b981">{{ n_ok }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">✗ Failed</span>
+                    <span class="receipt-value" style="color:{% if n_fail > 0 %}#ef4444{% else %}#9ca3af{% endif %}">{{ n_fail }}</span>
+                </div>
+            </div>
+
+            {% if failures %}
+            <details open style="text-align:left; margin: 16px 0; background:#fef2f2; border-radius:8px; padding:12px 16px; border:1px solid #fee2e2">
+                <summary style="cursor:pointer; font-weight:600; color:#991b1b">
+                    Failed videos ({{ failures|length }}) — fix these and re-upload
+                </summary>
+                <ul style="margin: 10px 0 0 20px; padding:0; color:#7f1d1d; font-size:14px">
+                    {% for f in failures %}
+                    <li><code>{{ f.filename }}</code>: {{ f.reason }}</li>
+                    {% endfor %}
+                </ul>
+            </details>
+            {% endif %}
+
+            <a href="/" class="btn-primary">Upload More</a>
+        </div>
+    </main>
+
+    <footer>
+        <p><a href="/">Back to home</a></p>
+    </footer>
+</body>
+</html>

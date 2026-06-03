@@ -3,69 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISL → English Translation — Contribute a Video</title>
+    <title>ISL Video Upload</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <main>
         <header>
-            <h1>Help Build an ISL → English Translator</h1>
-            <p class="subtitle">Upload a short Indian Sign Language video and type what it means in English.</p>
+            <h1>ISL Video Upload</h1>
+            <p class="subtitle">Sign + meaning. That's it.</p>
         </header>
 
-        <section class="instructions">
-            <h2>How it works</h2>
-            <ol>
-                <li>Record yourself signing one sentence (3–10 seconds)</li>
-                <li>Upload the video below</li>
-                <li>Type the English meaning</li>
-                <li>Submit — your data is saved instantly</li>
-            </ol>
-        </section>
+        <div class="tab-bar">
+            <button type="button" class="tab-btn active" data-tab="single">Single Video</button>
+            <button type="button" class="tab-btn" data-tab="bulk">Bulk Upload</button>
+        </div>
 
-        <section class="instructions tips">
-            <h2>Tips for good recordings</h2>
-            <ul>
-                <li>Plain background (white or gray wall)</li>
-                <li>Good lighting, facing you</li>
-                <li>Camera at chest height, upper body visible</li>
-                <li>Solid color clothes (no patterns)</li>
-                <li>Keep it 3–10 seconds, one sentence per video</li>
-            </ul>
-        </section>
-
-        <section class="upload-card">
+        <section class="upload-card" id="tab-single">
             <form action="/submit" method="post" enctype="multipart/form-data">
 
                 <div class="field">
-                    <label for="video">
-                        <span class="label-num">1</span>
-                        Video <span class="required">*</span>
-                    </label>
-                    <input type="file" id="video" name="video" accept="video/*" required>
+                    <label for="s_video">Video <span class="required">*</span></label>
+                    <input type="file" id="s_video" name="video" accept="video/*" required>
                     <small>MP4, MOV, WEBM. Max 50 MB.</small>
                 </div>
 
                 <div class="field">
-                    <label for="english_text">
-                        <span class="label-num">2</span>
-                        English meaning <span class="required">*</span>
-                    </label>
-                    <input type="text" id="english_text" name="english_text"
+                    <label for="s_text">English meaning <span class="required">*</span></label>
+                    <input type="text" id="s_text" name="english_text"
                            placeholder="e.g., hello how are you" maxlength="500" required>
-                    <small>Lowercase, no punctuation. Just plain English.</small>
                 </div>
 
                 <div class="field">
-                    <label for="signer_name">
-                        <span class="label-num">3</span>
-                        Your name <span class="optional">(optional)</span>
-                    </label>
-                    <input type="text" id="signer_name" name="signer_name"
-                           placeholder="Leave blank to stay anonymous" maxlength="50">
+                    <label for="s_name">Your name <span class="required">*</span></label>
+                    <input type="text" id="s_name" name="signer_name"
+                           placeholder="your name" maxlength="50" required>
                 </div>
 
-                <button type="submit" class="btn-primary">Submit</button>
+                <div class="field">
+                    <label for="s_email">Email <span class="required">*</span></label>
+                    <input type="email" id="s_email" name="email"
+                           placeholder="you@example.com" maxlength="100" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Upload</button>
+            </form>
+        </section>
+
+        <section class="upload-card" id="tab-bulk" style="display:none">
+            <form action="/submit-bulk" method="post" enctype="multipart/form-data">
+
+                <div class="field">
+                    <label for="b_csv">CSV mapping file <span class="required">*</span></label>
+                    <input type="file" id="b_csv" name="csv_file" accept=".csv,text/csv" required>
+                    <small>
+                        2 columns: <code>filename, english_text</code>.
+                        <a href="/static/bulk_template.csv" download>Download template</a>
+                    </small>
+                </div>
+
+                <div class="field">
+                    <label for="b_videos">Video files <span class="required">*</span></label>
+                    <input type="file" id="b_videos" name="videos" accept="video/*" multiple required>
+                    <small>Select all videos at once. Filenames must match the CSV.</small>
+                </div>
+
+                <div class="field">
+                    <label for="b_name">Your name <span class="required">*</span></label>
+                    <input type="text" id="b_name" name="signer_name"
+                           placeholder="your name (applies to all videos)" maxlength="50" required>
+                </div>
+
+                <div class="field">
+                    <label for="b_email">Email <span class="required">*</span></label>
+                    <input type="email" id="b_email" name="email"
+                           placeholder="you@example.com" maxlength="100" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Upload All</button>
             </form>
         </section>
 
@@ -77,5 +91,18 @@
     <footer>
         <p>Open-source project — videos help train a free ISL → English translation model.</p>
     </footer>
+
+    <script>
+    // Simple tab switcher
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-single').style.display = (tabName === 'single') ? '' : 'none';
+            document.getElementById('tab-bulk').style.display = (tabName === 'bulk') ? '' : 'none';
+        });
+    });
+    </script>
 </body>
 </html>

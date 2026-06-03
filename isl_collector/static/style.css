@@ -19,21 +19,20 @@ main {
 
 header {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 header h1 {
-    margin: 0 0 8px 0;
-    font-size: 28px;
+    margin: 0 0 6px 0;
+    font-size: 26px;
     font-weight: 700;
     color: #111827;
-    line-height: 1.25;
 }
 
 .subtitle {
     margin: 0;
-    color: #4b5563;
-    font-size: 16px;
+    color: #6b7280;
+    font-size: 15px;
 }
 
 footer {
@@ -46,38 +45,36 @@ footer {
 footer a { color: #4c6fff; }
 
 
-/* Sections */
+/* Tab bar */
 
-.instructions {
-    background: white;
-    border-radius: 14px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+.tab-bar {
+    display: flex;
+    gap: 4px;
+    background: #e5e7eb;
+    padding: 4px;
+    border-radius: 10px;
+    margin-bottom: 14px;
 }
 
-.instructions h2 {
-    margin: 0 0 12px 0;
-    font-size: 16px;
-    color: #374151;
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 7px;
+    font-size: 14px;
     font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.15s;
 }
 
-.instructions ol,
-.instructions ul {
-    margin: 0;
-    padding-left: 22px;
-}
+.tab-btn:hover { color: #1f2937; }
 
-.instructions li {
-    margin-bottom: 4px;
-    color: #4b5563;
-    font-size: 15px;
-}
-
-.tips {
-    background: #fffbeb;
-    border-left: 3px solid #f59e0b;
+.tab-btn.active {
+    background: white;
+    color: #1f2937;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }
 
 
@@ -86,48 +83,33 @@ footer a { color: #4c6fff; }
 .upload-card {
     background: white;
     border-radius: 14px;
-    padding: 28px 24px;
-    margin-bottom: 24px;
+    padding: 24px 22px;
+    margin-bottom: 18px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .field {
-    margin-bottom: 22px;
+    margin-bottom: 18px;
 }
 
 .field label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: block;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     color: #1f2937;
-    font-size: 15px;
-}
-
-.label-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    background: #4c6fff;
-    color: white;
-    border-radius: 50%;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
 }
 
 .required { color: #ef4444; font-weight: normal; }
-.optional { color: #9ca3af; font-weight: 400; font-size: 13px; }
 
 .field input[type="file"],
-.field input[type="text"] {
+.field input[type="text"],
+.field input[type="email"] {
     width: 100%;
-    padding: 12px 14px;
+    padding: 11px 13px;
     border: 1.5px solid #d1d5db;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 15px;
     background: white;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -140,10 +122,25 @@ footer a { color: #4c6fff; }
 
 .field small {
     display: block;
-    margin-top: 6px;
+    margin-top: 5px;
     color: #6b7280;
-    font-size: 13px;
+    font-size: 12.5px;
 }
+
+.field small code {
+    background: #f3f4f6;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11.5px;
+    color: #1f2937;
+}
+
+.field small a {
+    color: #4c6fff;
+    text-decoration: none;
+}
+
+.field small a:hover { text-decoration: underline; }
 
 
 /* Buttons */
@@ -152,8 +149,8 @@ footer a { color: #4c6fff; }
     background: #4c6fff;
     color: white;
     border: none;
-    padding: 14px 32px;
-    font-size: 16px;
+    padding: 13px 30px;
+    font-size: 15px;
     font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
@@ -168,26 +165,26 @@ footer a { color: #4c6fff; }
 .btn-primary:active { transform: translateY(1px); }
 
 
-/* Counter at bottom of home page */
+/* Counter */
 
 .counter {
     text-align: center;
-    margin-top: 20px;
-    padding: 16px;
+    margin-top: 16px;
+    padding: 14px;
     background: white;
-    border-radius: 12px;
+    border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .counter p {
     margin: 0;
     color: #6b7280;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .counter strong {
     color: #4c6fff;
-    font-size: 20px;
+    font-size: 18px;
 }
 
 
@@ -196,28 +193,28 @@ footer a { color: #4c6fff; }
 .thanks-card {
     background: white;
     border-radius: 14px;
-    padding: 36px 28px;
+    padding: 32px 24px;
     text-align: center;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .thanks-card h1 {
-    margin: 0 0 8px 0;
-    font-size: 32px;
+    margin: 0 0 6px 0;
+    font-size: 28px;
 }
 
 .thanks-card .lead {
     color: #4b5563;
-    margin: 0 0 28px 0;
-    font-size: 17px;
+    margin: 0 0 24px 0;
+    font-size: 16px;
 }
 
 .receipt {
     text-align: left;
     background: #f9fafb;
     border-radius: 10px;
-    padding: 16px 20px;
-    margin-bottom: 28px;
+    padding: 14px 18px;
+    margin: 20px 0 24px 0;
     border: 1px solid #e5e7eb;
 }
 
@@ -233,21 +230,21 @@ footer a { color: #4c6fff; }
 
 .receipt-label {
     color: #6b7280;
-    font-size: 13px;
+    font-size: 12.5px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .receipt-value {
     color: #1f2937;
-    font-weight: 500;
+    font-weight: 600;
     text-align: right;
 }
 
 .small {
-    font-size: 13px;
+    font-size: 12.5px;
     color: #9ca3af;
-    margin-top: 20px;
+    margin-top: 16px;
     line-height: 1.5;
 }
 
@@ -255,8 +252,8 @@ footer a { color: #4c6fff; }
 /* Mobile */
 
 @media (max-width: 500px) {
-    main { padding: 24px 14px 40px 14px; }
-    header h1 { font-size: 24px; }
-    .upload-card { padding: 22px 18px; }
-    .instructions { padding: 18px 20px; }
+    main { padding: 22px 14px 36px 14px; }
+    header h1 { font-size: 22px; }
+    .upload-card { padding: 20px 16px; }
+    .tab-btn { font-size: 13px; padding: 9px 10px; }
 }

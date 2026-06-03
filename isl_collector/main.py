@@ -1,33 +1,26 @@
 """
-ISL Data Collection Pipeline — Simple Edition.
+ISL Data Collection Pipeline.
 
-Single-page web app:
-  - Anyone uploads a sign video + types the English meaning
-  - Upload goes straight to the network volume (via S3-compatible API)
-  - Metadata recorded in SQLite for the training script to read later
-  - NO admin login, NO approval queue, NO moderation
-  - All submissions are auto-accepted ("approved" status)
+Two upload modes via the same web app:
+  - Single Video: one video + one English meaning
+  - Bulk Upload: a CSV mapping + many video files
 
-Why this design:
-  - Lower friction = more contributors
-  - Training script (run_isl_training.py) reads directly from the database
-  - User can SSH to the pod later to inspect/delete bad uploads if needed
+Both modes require email (so we can contact contributors if needed).
+All uploads are auto-approved and saved to /workspace/submissions/
+on the RunPod network volume via the S3-compatible API.
 
-Required env vars (set in Render):
-    S3_BUCKET          (your RunPod network volume bucket ID)
-    S3_REGION          (e.g., eu-ro-1)
-    S3_ENDPOINT_URL    (e.g., https://s3api-eu-ro-1.runpod.io)
-    S3_ACCESS_KEY      (RunPod API access key)
-    S3_SECRET_KEY      (RunPod API secret)
-    MAX_VIDEO_MB       (default: 50)
-
-Start with: uvicorn main:app --host 0.0.0.0 --port $PORT
+Required env vars:
+    S3_BUCKET, S3_REGION, S3_ENDPOINT_URL, S3_ACCESS_KEY, S3_SECRET_KEY
+    MAX_VIDEO_MB (default: 50)
 """
 
+import csv as csvmod
 import io
 import os
+import re
 import time
 from pathlib import Path
+from typing import List
 
 import boto3
 from botocore.client import Config as BotoConfig
@@ -56,6 +49,10 @@ MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024
 
 LOCAL_DB_PATH = Path(os.environ.get("LOCAL_DB_PATH", "/tmp/isl_data.db"))
 S3_DB_KEY = "_state/isl_data.db"
+
+VALID_VIDEO_EXTS = {".mp4", ".mov", ".webm", ".avi", ".mkv"}
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
 
 # ----- S3 client -----
 s3_kwargs = {
@@ -88,8 +85,56 @@ def _backup_db():
         print(f"[WARN] DB backup failed: {e}")
 
 
+def _clean_text(s: str) -> str:
+    s = (s or "").strip().lower()
+    for ch in ".,!?;:\"'":
+        s = s.replace(ch, "")
+    return " ".join(s.split())
+
+
+def _safe_signer(s: str) -> str:
+    s = "".join(c for c in (s or "anon")[:30] if c.isalnum() or c in "_-")
+    return s or "anon"
+
+
+def _validate_email(email: str):
+    if not email or not EMAIL_RE.match(email):
+        raise HTTPException(400, "A valid email address is required")
+
+
+def _upload_one_video(
+    body: bytes,
+    text: str,
+    signer_name: str,
+    email: str,
+    size: int,
+) -> dict:
+    """Upload a single video to S3 and record in DB. Returns submission dict."""
+    ts = int(time.time() * 1000)
+    safe = _safe_signer(signer_name)
+    s3_key = f"submissions/upload_{ts}_{safe}.mp4"
+
+    s3.put_object(
+        Bucket=S3_BUCKET,
+        Key=s3_key,
+        Body=body,
+        ContentType="video/mp4",
+    )
+
+    sub_id = db_insert_submission(
+        LOCAL_DB_PATH,
+        s3_key=s3_key,
+        english_text=text,
+        signer_name=signer_name or "anonymous",
+        email=email,
+        size_bytes=size,
+        status="approved",
+    )
+    return {"id": sub_id, "s3_key": s3_key}
+
+
 # ============================================================================
-# Routes
+# Public routes
 # ============================================================================
 
 @app.get("/", response_class=HTMLResponse)
@@ -98,27 +143,29 @@ def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "stats": stats})
 
 
+# ----- Single video upload -----
+
 @app.post("/submit", response_class=HTMLResponse)
-async def submit_video(
+async def submit_single(
     request: Request,
     video: UploadFile = File(...),
     english_text: str = Form(...),
-    signer_name: str = Form(""),
+    signer_name: str = Form(...),     # mandatory
+    email: str = Form(...),           # mandatory
 ):
-    """Receive upload, save to S3, record in DB, auto-approve."""
-
     if not video.filename:
         raise HTTPException(400, "No file uploaded")
 
     ext = Path(video.filename).suffix.lower()
-    if ext not in [".mp4", ".mov", ".webm", ".avi", ".mkv"]:
+    if ext not in VALID_VIDEO_EXTS:
         raise HTTPException(400, f"File type {ext} not supported. Use MP4/MOV/WEBM/AVI/MKV.")
 
-    # Clean text
-    text = english_text.strip().lower()
-    for ch in ".,!?;:\"'":
-        text = text.replace(ch, "")
-    text = " ".join(text.split())
+    _validate_email(email)
+
+    if not signer_name.strip():
+        raise HTTPException(400, "Name is required")
+
+    text = _clean_text(english_text)
     if len(text) < 2:
         raise HTTPException(400, "Please type what the sign means in English")
     if len(text) > 500:
@@ -138,33 +185,133 @@ async def submit_video(
     if size < 1024:
         raise HTTPException(400, "Video file too small or corrupted")
 
-    # Build S3 key + upload
-    ts = int(time.time() * 1000)
-    safe_signer = "".join(c for c in (signer_name or "anon")[:30] if c.isalnum() or c in "_-") or "anon"
-    s3_key = f"submissions/upload_{ts}_{safe_signer}.mp4"
-
     try:
-        s3.put_object(Bucket=S3_BUCKET, Key=s3_key, Body=body, ContentType="video/mp4")
+        result = _upload_one_video(body, text, signer_name.strip(), email.strip(), size)
     except Exception as e:
         raise HTTPException(500, f"Failed to save video: {e}")
 
-    # Auto-approve (no admin review needed)
-    submission_id = db_insert_submission(
-        LOCAL_DB_PATH,
-        s3_key=s3_key,
-        english_text=text,
-        signer_name=signer_name.strip() or "anonymous",
-        email="",
-        size_bytes=size,
-        status="approved",  # KEY: auto-approve every submission
-    )
     _backup_db()
 
     return templates.TemplateResponse("thanks.html", {
         "request": request,
-        "submission_id": submission_id,
+        "submission_id": result["id"],
         "english_text": text,
         "filesize_mb": round(size / (1024 * 1024), 2),
+    })
+
+
+# ----- Bulk upload (CSV + multiple videos) -----
+
+@app.post("/submit-bulk", response_class=HTMLResponse)
+async def submit_bulk(
+    request: Request,
+    csv_file: UploadFile = File(...),
+    videos: List[UploadFile] = File(...),
+    signer_name: str = Form(...),
+    email: str = Form(...),
+):
+    _validate_email(email)
+    if not signer_name.strip():
+        raise HTTPException(400, "Name is required")
+
+    # Parse CSV
+    try:
+        csv_bytes = await csv_file.read()
+        csv_text = csv_bytes.decode("utf-8-sig").splitlines()
+        reader = csvmod.DictReader(csv_text)
+        rows = list(reader)
+    except Exception as e:
+        raise HTTPException(400, f"Could not parse CSV: {e}")
+
+    if not rows:
+        raise HTTPException(400, "CSV is empty")
+
+    required_cols = {"filename", "english_text"}
+    csv_cols = set(reader.fieldnames or [])
+    missing_cols = required_cols - csv_cols
+    if missing_cols:
+        raise HTTPException(400,
+            f"CSV missing required columns: {sorted(missing_cols)}. "
+            f"Found: {sorted(csv_cols)}. Expected: filename, english_text")
+
+    # Build map: filename -> english_text from CSV
+    csv_map = {}
+    for row in rows:
+        fn = (row.get("filename") or "").strip()
+        text = _clean_text(row.get("english_text") or "")
+        if fn:
+            csv_map[fn] = text
+
+    # Process each video
+    n_ok = 0
+    n_fail = 0
+    failures = []
+
+    for vf in videos:
+        fn = vf.filename or ""
+        text = csv_map.get(fn)
+
+        if text is None:
+            failures.append({"filename": fn, "reason": "filename not in CSV"})
+            n_fail += 1
+            continue
+
+        if len(text) < 2:
+            failures.append({"filename": fn, "reason": "text too short"})
+            n_fail += 1
+            continue
+
+        if len(text) > 500:
+            failures.append({"filename": fn, "reason": "text too long (max 500 chars)"})
+            n_fail += 1
+            continue
+
+        ext = Path(fn).suffix.lower()
+        if ext not in VALID_VIDEO_EXTS:
+            failures.append({"filename": fn, "reason": f"bad file type ({ext})"})
+            n_fail += 1
+            continue
+
+        # Read video + size check
+        chunks, size = [], 0
+        oversize = False
+        while True:
+            chunk = await vf.read(1024 * 1024)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > MAX_VIDEO_BYTES:
+                oversize = True
+                break
+            chunks.append(chunk)
+
+        if oversize:
+            failures.append({"filename": fn, "reason": f"too large (max {MAX_VIDEO_MB} MB)"})
+            n_fail += 1
+            continue
+
+        if size < 1024:
+            failures.append({"filename": fn, "reason": "file too small or corrupted"})
+            n_fail += 1
+            continue
+
+        body = b"".join(chunks)
+
+        try:
+            _upload_one_video(body, text, signer_name.strip(), email.strip(), size)
+            n_ok += 1
+        except Exception as e:
+            failures.append({"filename": fn, "reason": f"upload error: {e}"})
+            n_fail += 1
+
+    _backup_db()
+
+    return templates.TemplateResponse("bulk_thanks.html", {
+        "request": request,
+        "n_total": len(videos),
+        "n_ok": n_ok,
+        "n_fail": n_fail,
+        "failures": failures,
     })
 
 
